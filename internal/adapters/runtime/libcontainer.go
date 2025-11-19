@@ -18,7 +18,7 @@ import (
 
 const (
 	StatePath = "/run/nexus" // folder where to find the state of the container
-	Cgroup    = "nexus"      // this is the name of the parent cgroup, we need to precise this to isolate our containers from one another
+	Cgroup    = "/nexus"     // this is the name of the parent cgroup, we need to precise this to isolate our containers from one another
 )
 
 // LibContainerRuntime will be the root path of the state
@@ -159,15 +159,14 @@ func (r *LibContainerRuntime) CreateAndStart(conf core.NodeConfig) (*core.NodeSt
 				Device:      "tmpfs",
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV,
 			},
-			{Source: "proc", Destination: "/proc", Device: "proc", Flags: syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV},
 		},
-		UIDMappings: []configs.IDMap{},
-		GIDMappings: []configs.IDMap{},
+		/*UIDMappings: []configs.IDMap{},
+		GIDMappings: []configs.IDMap{},*/
 	}
 
 	//The libcontainer.Create method use our r.RootStatePath to store the state of the container
 
-	container, err := libcontainer.Create(conf.RootfsPath, conf.ID, config)
+	container, err := libcontainer.Create(r.RootStatePath, conf.ID, config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create the container libcontaire for  %s: %w", conf.ID, err)
 	}
