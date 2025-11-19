@@ -153,8 +153,8 @@ func (r *LibContainerRuntime) CreateAndStart(conf core.NodeConfig) (*core.NodeSt
 			{Source: "tmpfs", Destination: "/dev", Device: "tmpfs", Flags: syscall.MS_NOSUID | syscall.MS_STRICTATIME, Data: "mode=755"},
 			{Source: "devpts", Destination: "/dev/pts", Device: "devpts", Flags: syscall.MS_NOSUID | syscall.MS_NOEXEC},
 		},
-		UIDMappings: []configs.IDMap{},
-		GIDMappings: []configs.IDMap{},
+		/*UIDMappings: []configs.IDMap{},
+		GIDMappings: []configs.IDMap{},*/
 	}
 
 	//The libcontainer.Create method use our r.RootStatePath to store the state of the container
