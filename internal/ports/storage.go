@@ -5,5 +5,5 @@ type StorageManager interface {
 	CreateVolume(NodeID string, size string) (string, error)
 
 	//AttachVolume readies the volume for the mounting procedure
-	AttachVolume(VolumePath string)
+	AttachVolume(VolumePath string) (string, error)
 }

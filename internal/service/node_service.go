@@ -3,6 +3,7 @@ package service
 import (
 	"Nexus/internal/adapters/network"
 	"Nexus/internal/adapters/runtime"
+	"Nexus/internal/adapters/storage"
 	"Nexus/internal/core"
 	"Nexus/internal/ports"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 type NodeService struct {
 	runtime ports.ContainerRuntime
 	network ports.NetworkManager
+	storage ports.StorageManager
 }
 
 // NewNodeService is the method that will allow us to create from the logic metier a new container
@@ -23,15 +25,16 @@ func NewNodeService() (*NodeService, error) {
 	}
 	nm := network.NewNetlinkManager() // creating an instance of the network adapter
 	// now let's make sure the bridge is ready before the first node
+	sm := storage.NewLoopStorageManager()
 	settingInitBridge := nm.SetupBridge()
 	if settingInitBridge != nil {
 		return nil, fmt.Errorf("unable to initialize the bridge  ")
 	}
-	return &NodeService{runtime: rt, network: nm}, nil
+	return &NodeService{runtime: rt, network: nm, storage: sm}, nil
 }
 
 // CreateNode is the application logic to create a new node
-func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64) (*core.NodeState, error) {
+func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64, storageSize string) (*core.NodeState, error) {
 	// Let's perform a little validation
 	if name == "" {
 		return nil, fmt.Errorf("the node must have a name")
@@ -43,6 +46,18 @@ func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64) (*core
 		return nil, fmt.Errorf("unable to assign the IP address %v", assignIPError.Error())
 	}
 
+	// let's deal with the storage
+	// First of all, let's create the storage file
+	volPath, volumeCreationError := s.storage.CreateVolume(name, storageSize)
+	if volumeCreationError != nil {
+		return nil, fmt.Errorf("unable to create volume %v", volumeCreationError.Error())
+	}
+	// let's try to attach the created volume
+	loopDevice, mountingError := s.storage.AttachVolume(volPath)
+	if mountingError != nil {
+		return nil, fmt.Errorf("an error occured when mounting the loop device : %v", mountingError.Error())
+	}
+
 	// let's now create the configuration to be launched
 	rootfsPath := "/var/lib/nexus/images/alpine-base" // this the location of the root filesystem
 	conf := core.NodeConfig{
@@ -50,6 +65,7 @@ func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64) (*core
 		Hostname:   name,
 		RootfsPath: rootfsPath,
 		Memory:     mem,
+		VolumePath: loopDevice,
 		CPUShares:  cpuShare,
 		Command:    []string{"/bin/sh", "-c", "sleep 3600"}, // our process
 	}
@@ -57,7 +73,7 @@ func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64) (*core
 	// Now let's call the adapter by using the interface
 	state, err := s.runtime.CreateAndStart(conf)
 	if err != nil {
-		//TODO: we will implement the releasing of the assigned ip address when the container fails
+		//TODO: We will implement the release of the assigned IP address when the container fails
 		return nil, fmt.Errorf("unable to create a new node %v", err.Error())
 	}
 	//now let's perform our network plumbing

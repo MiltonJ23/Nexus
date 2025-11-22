@@ -98,15 +98,42 @@ func createCgroupParent() error {
 */
 
 func (r *LibContainerRuntime) CreateAndStart(conf core.NodeConfig) (*core.NodeState, error) {
+	// 1. Manual Cgroup Creation (Your existing logic)
 	nodeCgroupPath := path.Join(CgroupFsPath, conf.ID)
-
-	// On crée le dossier manuellement. Le noyau créera automatiquement les fichiers (cgroup.procs, etc.) à l'intérieur.
 	if err := os.MkdirAll(nodeCgroupPath, 0755); err != nil {
 		return nil, fmt.Errorf("failed to manually create node cgroup %s: %w", nodeCgroupPath, err)
 	}
-	// Here we are going to define the isolation contract
+
+	// 2. Define Default Mounts (Moved OUTSIDE the config struct)
+	// We do this here so we can dynamically append the volume mount later
+	mounts := []*configs.Mount{
+		{Source: "proc", Destination: "/proc", Device: "proc", Flags: syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV},
+		{Source: "sysfs", Destination: "/sys", Device: "sysfs", Flags: syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV},
+		{Source: "tmpfs", Destination: "/dev", Device: "tmpfs", Flags: syscall.MS_NOSUID | syscall.MS_STRICTATIME, Data: "mode=755"},
+		{Source: "devpts", Destination: "/dev/pts", Device: "devpts", Flags: syscall.MS_NOSUID | syscall.MS_NOEXEC},
+		{
+			Source:      "shm",
+			Destination: "/dev/shm",
+			Device:      "tmpfs",
+			Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV,
+		},
+	}
+
+	// 3. NEW LOGIC: Append Volume Mount if it exists
+	if conf.VolumePath != "" {
+		mounts = append(mounts, &configs.Mount{
+			Source:      conf.VolumePath,    // The loop device (e.g., /dev/loop4)
+			Destination: "/data",            // Where it appears inside the container
+			Device:      "ext4",             // File system type
+			Flags:       syscall.MS_NOATIME, // No Access Time (optimization)
+			Data:        "",
+		})
+		fmt.Printf("    -> Volume detected: Mounting %s to /data\n", conf.VolumePath)
+	}
+
+	//lets define the isolation contract by setting up the container NameSpaces
 	config := &configs.Config{
-		Rootfs: conf.RootfsPath, // We use the state path as the root
+		Rootfs: conf.RootfsPath,
 		Namespaces: configs.Namespaces{
 			{Type: configs.NEWPID},
 			{Type: configs.NEWNS},
@@ -117,7 +144,6 @@ func (r *LibContainerRuntime) CreateAndStart(conf core.NodeConfig) (*core.NodeSt
 		},
 
 		Cgroups: &cgroups.Cgroup{
-			// This is the location where the container will be created in the parent folder
 			Path: path.Join(Cgroup, conf.ID),
 			Resources: &cgroups.Resources{
 				Memory:    conf.Memory * 1024 * 1024,
@@ -134,32 +160,16 @@ func (r *LibContainerRuntime) CreateAndStart(conf core.NodeConfig) (*core.NodeSt
 		},
 
 		Hostname: conf.Hostname,
-
-		// Mounting points of the container , those are unchanged
-		Mounts: []*configs.Mount{
-			{Source: "proc", Destination: "/proc", Device: "proc", Flags: syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV},
-			{Source: "sysfs", Destination: "/sys", Device: "sysfs", Flags: syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV},
-			{Source: "tmpfs", Destination: "/dev", Device: "tmpfs", Flags: syscall.MS_NOSUID | syscall.MS_STRICTATIME, Data: "mode=755"},
-			{Source: "devpts", Destination: "/dev/pts", Device: "devpts", Flags: syscall.MS_NOSUID | syscall.MS_NOEXEC},
-			{
-				Source:      "shm",
-				Destination: "/dev/shm",
-				Device:      "tmpfs",
-				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV,
-			},
-		},
-		/*UIDMappings: []configs.IDMap{},
-		GIDMappings: []configs.IDMap{},*/
+		Mounts:   mounts,
 	}
 
-	//The libcontainer.Create method use our r.RootStatePath to store the state of the container
-
+	// 6. Container Creation
 	container, err := libcontainer.Create(r.RootStatePath, conf.ID, config)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create the container libcontaire for  %s: %w", conf.ID, err)
 	}
 
-	// Here let's define the process that will be trapped inside of our container
+	// Let's clearly define the process insisde of the ccontainer
 	process := &libcontainer.Process{
 		Args:   conf.Command,
 		Env:    []string{"PATH=/bin:/usr/bin:/sbin:/usr/sbin"},
@@ -168,21 +178,20 @@ func (r *LibContainerRuntime) CreateAndStart(conf core.NodeConfig) (*core.NodeSt
 		Stderr: os.Stderr,
 	}
 
-	// Now we launch the thing
+	// Then we launch the container
 	if err := container.Run(process); err != nil {
-		// let's clean in case of a critical failure
 		if destroyErr := container.Destroy(); destroyErr != nil {
 			return nil, fmt.Errorf("failed to run  %s: %w; also failed the cleanup: %v", conf.ID, err, destroyErr)
 		}
 		return nil, fmt.Errorf("failed to run for  %s: %w", conf.ID, err)
 	}
 
-	// NOw  let's fetch the PID directly from the running process
+	// Now let's Fetch the container PID
 	hostPID, _ := process.Pid()
 
 	nodeState := &core.NodeState{
 		NodeConfig: conf,
-		PID:        hostPID, // This is the PID of the running container
+		PID:        hostPID,
 		Status:     "Running",
 	}
 

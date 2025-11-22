@@ -89,7 +89,7 @@ func (m *NetlinkManager) SetupContainerNetwork(NodeID string, NodePID int, ip co
 	// now let's create and link the Veth pair on the node
 	// let's start by assigning a new to the 2 pins of the Veth
 	vethHost := fmt.Sprintf("%s%s", VethPrefix, NodeID)
-	vethGuest := "eth0" // the name of the interface inside of the node
+	vethGuest := "eth0" // the name of the interface inside  the node
 
 	// let's build the vethpair
 	veth := &netlink.Veth{
@@ -170,7 +170,7 @@ func (m *NetlinkManager) SetupContainerNetwork(NodeID string, NodePID int, ip co
 	// now let's configure the default gateway , the thing is without this the node doesn't know how to forward traffic that doesn't come from 10.0.42.0/24
 	gatewayIP := net.ParseIP(ip.Gateway)
 	route := &netlink.Route{} // with this we can create a new route
-	route.ILinkIndex = eth0.Attrs().Index
+	route.LinkIndex = eth0.Attrs().Index
 	route.Gw = gatewayIP
 	AddingGatewayError := netlink.RouteAdd(route)
 	if AddingGatewayError != nil {
