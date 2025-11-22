@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	memFlag     int64                // Memory in megabytes , it refers to the moemory of the node
-	cpuFlag     uint64               // CPU weight , this refers to our cpu share s
+	memFlag     int64  // Memory in megabytes , it refers to the moemory of the node
+	cpuFlag     uint64 // CPU weight , this refers to our cpu share s
+	storageFlag string
 	nodeService *service.NodeService //The service of our application
 )
 var nodeCmd = &cobra.Command{
@@ -33,7 +34,7 @@ var nodeCreateCmd = &cobra.Command{
 		nodeName := args[0]
 		fmt.Printf("Launching the node creation process  %s...\n", nodeName)
 		// let's call the logic metier for creating a node
-		state, err := nodeService.CreateNode(nodeName, memFlag, cpuFlag)
+		state, err := nodeService.CreateNode(nodeName, memFlag, cpuFlag, storageFlag)
 		if err != nil {
 			fmt.Printf("Failed the node creation%s: %v\n", nodeName, err)
 			fmt.Println("Make sure you use SUDO! (Ex: sudo ./nexus node create node-1)")
@@ -50,7 +51,7 @@ func init() {
 	var err error
 	nodeService, err = service.NewNodeService()
 	if err != nil {
-		// Faced a critical error unable to exchange with the kernel
+		// Faced a critical error, unable to exchange with the kernel
 		panic(fmt.Sprintf("Critical Error when initializing the service: %v", err))
 	}
 	// let's add the command create
@@ -58,5 +59,6 @@ func init() {
 	nodeCmd.AddCommand(nodeCreateCmd)
 	//  let's add the flags for the create command
 	nodeCreateCmd.Flags().Int64Var(&memFlag, "mem", 128, "allocated memory in megabytes (ex: 64, 256, 512)")
-	nodeCreateCmd.Flags().Uint64Var(&cpuFlag, "cpu", 512, "cpu weight , to choose from (0 à 1024) , but  a  standard  is 512)")
+	nodeCreateCmd.Flags().Uint64Var(&cpuFlag, "cpu", 512, "cpu weight, to choose from (0 à 1024), but  a  standard  is 512")
+	nodeCreateCmd.Flags().StringVar(&storageFlag, "storage", "", "Size of the persistent volume (e.g., 500M, 1G)")
 }
