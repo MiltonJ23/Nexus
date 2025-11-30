@@ -4,30 +4,12 @@ Copyright © 2025 Zingui Fred Mike <mikezingui@yahoo.com>
 package cmd
 
 import (
-	"github.com/opencontainers/runc/libcontainer"
-	_ "github.com/opencontainers/runc/libcontainer/nsenter"
 	"os"
-	"runtime"
+
+	_ "github.com/opencontainers/runc/libcontainer/nsenter"
 
 	"github.com/spf13/cobra"
 )
-
-var initCmd = &cobra.Command{
-	Use:    "init",
-	Short:  "Init process for libcontainer (INTERNAL ONLY)",
-	Hidden: true,
-	Run: func(cmd *cobra.Command, args []string) {
-		// locking the main Thread
-		// linux namespaces are related to the thread , not the light threads(goroutines) | so we have to make sure this code stays on the main thread
-		runtime.GOMAXPROCS(1)
-		runtime.LockOSThread()
-
-		// Let's initialize the continaer
-		// Init will fetch the configurations sent by the parent process through the pipe
-		libcontainer.Init()
-
-	},
-}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -60,5 +42,5 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.AddCommand(initCmd)
+
 }

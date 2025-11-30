@@ -59,11 +59,11 @@ func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64, storag
 	}
 
 	// let's now create the configuration to be launched
-	rootfsPath := "/var/lib/nexus/images/alpine-base" // this the location of the root filesystem
+	
 	conf := core.NodeConfig{
 		ID:         name,
 		Hostname:   name,
-		RootfsPath: rootfsPath,
+		RootfsPath: "/var/lib/nexus/images/alpine-base",
 		Memory:     mem,
 		VolumePath: loopDevice,
 		CPUShares:  cpuShare,
