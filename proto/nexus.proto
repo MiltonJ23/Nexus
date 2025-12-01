@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package nexus;
 
-option go_package = "CloudSim/proto";
+option go_package = "Nexus/proto";
 
 // Le Service Contrôleur
 service NexusController {
