@@ -35,6 +35,10 @@ sudo ip route flush table main
 sudo netplan apply
 # Alternative si netplan n'est pas utilisé : sudo systemctl restart systemd-networkd
 
+# NETTOYAGE DES FICHIERS D'ETAT
+echo "-> Nettoyage des fichiers d'etat "
+sudo rm /var/lib/nexus/nexus.json 
+
 echo "=== 5. NETTOYAGE CGROUPS ==="
 sudo find /sys/fs/cgroup/nexus -mindepth 1 -delete 2>/dev/null
 sudo rmdir /sys/fs/cgroup/nexus 2>/dev/null

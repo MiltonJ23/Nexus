@@ -9,13 +9,18 @@ type StorageManager interface {
 	//AttachVolume readies the volume for the mounting procedure
 	AttachVolume(VolumePath string) (string, error)
 
-	// MountVolumeOnHost is supposed to mount . the volume on the host before performing the I/O operations of the
-	MountVolumeOnHost(NodeID string) error
+	// MountOnHost mounts a node's loop device to a temporary path on the host.
+	MountOnHost(nodeID string) (string, error)
 
-	UnMountVolumeOnHost(NodeID string) error
+	// UnmountOnHost unmounts the temporary path.
+	UnmountOnHost(nodeID string) error
 
-	WriteChunk(MountPoint string, Filename string, data io.Reader) error
-	ReadChunk(MountPoint string, Filename string) (io.ReadCloser, error)
-	DeleteChunk(MountPoint string, filename string) error
-	ListFiles(MountPoint string) ([]string, error)
+	// WriteChunk writes data stream to a specific file on the mounted path.
+	WriteChunk(mountPoint string, filename string, data io.Reader) error
+
+	// ReadChunk returns a reader for a specific file on the mounted path.
+	ReadChunk(mountPoint string, filename string) (io.ReadCloser, error)
+
+	// DeleteChunk removes a file from the mounted path.
+	DeleteChunk(mountPoint string, filename string) error
 }
