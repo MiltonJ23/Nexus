@@ -10,6 +10,8 @@ type NodeConfig struct {
 	RootfsPath     string   // the root filesystem path, the little package that is going to give our node process an environment of execution , a little root filesystem
 	Command        []string // the command to be executed
 	NetworkEnabled bool     // this will allow us to activate/deactivate the network
+	StorageSize    string
+	VolumePath     string
 }
 
 // now let's define, the state of a node that is going to be persisted in hard memory

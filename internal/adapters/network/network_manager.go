@@ -89,7 +89,7 @@ func (m *NetlinkManager) SetupContainerNetwork(NodeID string, NodePID int, ip co
 	// now let's create and link the Veth pair on the node
 	// let's start by assigning a new to the 2 pins of the Veth
 	vethHost := fmt.Sprintf("%s%s", VethPrefix, NodeID)
-	vethGuest := "eth0" // the name of the interface inside of the node
+	vethGuest := "eth0" // the name of the interface inside  the node
 
 	// let's build the vethpair
 	veth := &netlink.Veth{
@@ -111,9 +111,25 @@ func (m *NetlinkManager) SetupContainerNetwork(NodeID string, NodePID int, ip co
 	if pinVethHostOnBridgeError != nil {
 		return fmt.Errorf("failed to pin the vethHost pin %v on the bridge %v: %v", vethHost, BridgeName, pinVethHostOnBridgeError.Error())
 	}
+	setVethHostUPError := netlink.LinkSetUp(veth)
+	if setVethHostUPError != nil {
+		return fmt.Errorf("failed to set vethHost UP : %v", setVethHostUPError.Error())
+	}
+
 	// reaching here, means we were able to pin the vethHost Pin on the linux bridge
 	fmt.Printf(" -> veth %v  was created successfully and linked to the bridge ", vethHost)
 
+	//Now let's move the vethGuest inside  the Container before changing the namespace
+	peer, linkVethGuestError := netlink.LinkByName(vethGuest)
+	if linkVethGuestError != nil {
+		return fmt.Errorf("unable to find peer veth %s on host: %v", vethGuest, linkVethGuestError)
+	}
+
+	// now let's push the vethGuest inside the container, we found it so let's move it
+	pushVethGuestInContainerError := netlink.LinkSetNsPid(peer, NodePID)
+	if pushVethGuestInContainerError != nil {
+		return fmt.Errorf("unable to move veth %s to namespace PID %d: %v", vethGuest, NodePID, pushVethGuestInContainerError)
+	}
 	// Now let's go configure the Container Network Namespace
 
 	// let's start by toggle into the container NameSpace
@@ -170,7 +186,7 @@ func (m *NetlinkManager) SetupContainerNetwork(NodeID string, NodePID int, ip co
 	// now let's configure the default gateway , the thing is without this the node doesn't know how to forward traffic that doesn't come from 10.0.42.0/24
 	gatewayIP := net.ParseIP(ip.Gateway)
 	route := &netlink.Route{} // with this we can create a new route
-	route.ILinkIndex = eth0.Attrs().Index
+	route.LinkIndex = eth0.Attrs().Index
 	route.Gw = gatewayIP
 	AddingGatewayError := netlink.RouteAdd(route)
 	if AddingGatewayError != nil {
