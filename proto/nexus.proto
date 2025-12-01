@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package nexus;
+
+option go_package = "CloudSim/proto";
+
+// Le Service Contrôleur
+service NexusController {
+  // Node handling 
+  rpc CreateNode (CreateNodeRequest) returns (NodeResponse);
+  // (On pourra ajouter StopNode, RemoveNode plus tard)
+
+  // File Handling
+  rpc UploadFile (UploadFileRequest) returns (FileResponse);
+  rpc DownloadFile (DownloadFileRequest) returns (FileResponse);
+  rpc ListFiles (Empty) returns (FileListResponse);
+}
+
+message Empty {}
+
+// Node module message
+
+message CreateNodeRequest {
+  string name = 1;
+  int64 memory_mb = 2;
+  int64 cpu_shares = 3;
+  string storage_size = 4;
+}
+
+message NodeResponse {
+  string id = 1;
+  string ip = 2;
+  string status = 3;
+}
+
+// File module  Messages
+
+message UploadFileRequest {
+  string local_path = 1; // absolute path on the host
+}
+
+message DownloadFileRequest {
+  string file_id = 1;
+  string dest_path = 2;
+}
+
+message FileResponse {
+  string id = 1;
+  string name = 2;
+  int64 size = 3;
+  int32 chunks_count = 4;
+  string status = 5;
+}
+
+message FileListResponse {
+  repeated FileResponse files = 1;
+}

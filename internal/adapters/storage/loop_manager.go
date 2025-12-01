@@ -3,11 +3,14 @@ package storage
 import (
 	"Nexus/internal/ports"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
+
+var _ ports.StorageManager = &LoopStorageManager{}
 
 type LoopStorageManager struct {
 	BasePath string
@@ -21,30 +24,6 @@ func NewLoopStorageManager() ports.StorageManager {
 	}
 	return &LoopStorageManager{BasePath: path}
 }
-
-/*func (s *LoopStorageManager) CreateVolume(NodeID string, size string) (string, error) {
-	// let's build the volume path, which means including the image file absolute
-	volumePath := filepath.Join(s.BasePath, fmt.Sprintf("%s.img", NodeID))
-
-	fmt.Printf("Creating the new volume for %s (%s)....", NodeID, size)
-
-	// let's create the empty file with truncate(our fastest alternative for now ) rather than using system calls as we did
-	cmd := exec.Command("truncate", "-s", size, volumePath)
-	cmdOutput, cmdError := cmd.CombinedOutput()
-	if cmdError != nil {
-		return "", fmt.Errorf("failed to truncate %s : %v", string(cmdOutput), cmdError.Error())
-	}
-	// if we reach here, it means we were able to build the volume in the desired path
-	// now let's format the volume in ext4
-	fmt.Printf("  -> now let's format the volume in ext4...\n")
-	cmdFormat := exec.Command("mkfs.ext4", "-F", volumePath)
-	output, err := cmdFormat.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("failed to format %s to ext4 format: %v", string(output), err.Error())
-	}
-	return volumePath, nil
-}*/
-
 func (s *LoopStorageManager) CreateVolume(NodeID string, size string) (string, error) {
 	// Utilisation de filepath.Join pour éviter les erreurs de slash
 	volumePath := filepath.Join(s.BasePath, fmt.Sprintf("%s.img", NodeID))
@@ -77,4 +56,57 @@ func (s *LoopStorageManager) AttachVolume(VolumePath string) (string, error) {
 	loopDevice := strings.TrimSpace(string(output))
 	fmt.Printf("  -> volume mounted on the device %s\n", loopDevice)
 	return loopDevice, nil
+}
+
+func (s *LoopStorageManager) MountOnHost(nodeID string) (string, error) {
+	// Construct path to the .img file
+	imagePath := filepath.Join(s.BasePath, fmt.Sprintf("%s.img", nodeID))
+
+	// Create a temp mount point: /tmp/cloudsim/mounts/node-1
+	mountPoint := filepath.Join("/tmp/nexus/mounts", nodeID)
+	if err := os.MkdirAll(mountPoint, 0755); err != nil {
+		return "", fmt.Errorf("failed to create mount dir: %w", err)
+	}
+
+	// Execute mount.
+	// NOTE: We use the image file directly. Linux handles loop allocation automatically.
+	cmd := exec.Command("mount", "-o", "loop", imagePath, mountPoint)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("mount failed: %s %w", string(out), err)
+	}
+
+	return mountPoint, nil
+}
+
+func (s *LoopStorageManager) UnmountOnHost(nodeID string) error {
+	mountPoint := filepath.Join("/tmp/nexus/mounts", nodeID)
+	// Unmount
+	cmd := exec.Command("umount", mountPoint)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("umount failed: %s %w", string(out), err)
+	}
+	// Cleanup directory
+	return os.Remove(mountPoint)
+}
+
+func (s *LoopStorageManager) WriteChunk(mountPoint string, filename string, data io.Reader) error {
+	destPath := filepath.Join(mountPoint, filename)
+	outFile, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	_, err = io.Copy(outFile, data)
+	return err
+}
+
+func (s *LoopStorageManager) ReadChunk(mountPoint string, filename string) (io.ReadCloser, error) {
+	srcPath := filepath.Join(mountPoint, filename)
+	return os.Open(srcPath)
+}
+
+func (s *LoopStorageManager) DeleteChunk(mountPoint string, filename string) error {
+	srcPath := filepath.Join(mountPoint, filename)
+	return os.Remove(srcPath)
 }

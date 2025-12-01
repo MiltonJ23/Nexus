@@ -6,6 +6,7 @@ import (
 	"Nexus/internal/adapters/storage"
 	"Nexus/internal/core"
 	"Nexus/internal/ports"
+	"Nexus/internal/state"
 	"fmt"
 )
 
@@ -14,6 +15,7 @@ type NodeService struct {
 	runtime ports.ContainerRuntime
 	network ports.NetworkManager
 	storage ports.StorageManager
+	state   *state.StateManager
 }
 
 // NewNodeService is the method that will allow us to create from the logic metier a new container
@@ -26,11 +28,17 @@ func NewNodeService() (*NodeService, error) {
 	nm := network.NewNetlinkManager() // creating an instance of the network adapter
 	// now let's make sure the bridge is ready before the first node
 	sm := storage.NewLoopStorageManager()
+
+	st := state.GlobalState
+	LoadingErr := st.Load()
+	if LoadingErr != nil {
+		return nil, fmt.Errorf("unable to load the state of the application %v", LoadingErr.Error())
+	}
 	settingInitBridge := nm.SetupBridge()
 	if settingInitBridge != nil {
 		return nil, fmt.Errorf("unable to initialize the bridge  ")
 	}
-	return &NodeService{runtime: rt, network: nm, storage: sm}, nil
+	return &NodeService{runtime: rt, network: nm, storage: sm, state: st}, nil
 }
 
 // CreateNode is the application logic to create a new node
@@ -55,11 +63,11 @@ func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64, storag
 	// let's try to attach the created volume
 	loopDevice, mountingError := s.storage.AttachVolume(volPath)
 	if mountingError != nil {
-		return nil, fmt.Errorf("an error occured when mounting the loop device : %v", mountingError.Error())
+		return nil, fmt.Errorf("an error occured while mounting the loop device : %v", mountingError.Error())
 	}
 
 	// let's now create the configuration to be launched
-	
+
 	conf := core.NodeConfig{
 		ID:         name,
 		Hostname:   name,
@@ -71,20 +79,25 @@ func (s *NodeService) CreateNode(name string, mem int64, cpuShare uint64, storag
 	}
 
 	// Now let's call the adapter by using the interface
-	state, err := s.runtime.CreateAndStart(conf)
-	if err != nil {
-		//TODO: We will implement the release of the assigned IP address when the container fails
-		return nil, fmt.Errorf("unable to create a new node %v", err.Error())
+	nodeState, ContainerLaunchError := s.runtime.CreateAndStart(conf)
+	if ContainerLaunchError != nil {
+		return nil, ContainerLaunchError
 	}
-	//now let's perform our network plumbing
-	// Now that we have a running PID, we can move our network interface inside of it
-	networkConfigOfContainerError := s.network.SetupContainerNetwork(state.ID, state.PID, ip)
-	if networkConfigOfContainerError != nil {
-		fmt.Printf("WARNING: failed to setup the network for node %v (running without net capabilities): %v", state.ID, networkConfigOfContainerError.Error())
-	} else {
-		state.IP = ip
+
+	// 5. Network Setup
+	nodeState.IP = ip
+	NetworkConfigurationError := s.network.SetupContainerNetwork(nodeState.ID, nodeState.PID, ip)
+	if NetworkConfigurationError != nil {
+		fmt.Printf("Warning: Network setup failed: %v\n", NetworkConfigurationError)
+	}
+
+	// 6. PERSISTANCE (Le chaînon manquant !)
+	// On enregistre le noeud dans le JSON pour que 'file upload' le trouve plus tard
+	s.state.State.Node[nodeState.ID] = *nodeState
+	if err := s.state.Save(); err != nil {
+		fmt.Printf("Warning: Failed to save state: %v\n", err)
 	}
 
 	//TODO: on top of this, I will need a persistence logic to keep the node state in the hard
-	return state, nil
+	return nodeState, nil
 }
