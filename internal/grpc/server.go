@@ -17,7 +17,7 @@ type NexusServer struct {
 
 // Initialization of a new Nexus Grpc server
 func NewNexusServer() (*NexusServer, error) {
-	// let's initialize the services in one go inside of the daemon
+	// let's initialize the services in one go inside  the daemon
 	ns, err := service.NewNodeService()
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func NewNexusServer() (*NexusServer, error) {
 
 // CreateNode
 func (s *NexusServer) CreateNode(ctx context.Context, req *pb.CreateNodeRequest) (*pb.NodeResponse, error) {
-	fmt.Printf("[gRPC] REQ: CreateNode name=%s mem=%d storage=%s\n", req.Name, req.MemoryMb, req.StorageSize)
+	fmt.Printf("\n\n[gRPC] REQ: CreateNode name=%s mem=%d storage=%s\n", req.Name, req.MemoryMb, req.StorageSize)
 	state, err := s.nodeService.CreateNode(req.Name, req.MemoryMb, uint64(req.CpuShares), req.StorageSize)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (s *NexusServer) CreateNode(ctx context.Context, req *pb.CreateNodeRequest)
 func (s *NexusServer) UploadFile(ctx context.Context, req *pb.UploadFileRequest) (*pb.FileResponse, error) {
 	// Here the daemon is executed as root | it must access the user's file and check that the path is absolute
 	absPath, _ := filepath.Abs(req.LocalPath)
-	fmt.Printf("[gRPC] REQ: UploadFile path=%s\n", absPath)
+	fmt.Printf("\n\n[gRPC] REQ: UploadFile path=%s\n", absPath)
 	meta, err := s.fileService.UploadFile(absPath)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (s *NexusServer) ListFiles(ctx context.Context, req *pb.Empty) (*pb.FileLis
 // DownloadFile
 func (s *NexusServer) DownloadFile(ctx context.Context, req *pb.DownloadFileRequest) (*pb.FileResponse, error) {
 	absPath, _ := filepath.Abs(req.DestPath)
-	fmt.Printf("[gRPC] REQ: DownloadFile id=%s dest=%s\n", req.FileId, absPath)
+	fmt.Printf("\n\n[gRPC] REQ: DownloadFile id=%s dest=%s\n", req.FileId, absPath)
 
 	err := s.fileService.DownloadFile(req.FileId, absPath)
 	if err != nil {

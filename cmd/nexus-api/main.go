@@ -23,7 +23,7 @@ func main() {
 	nexusClient := pb.NewNexusControllerClient(nexusConn)
 
 	// 2. Connect to Identity Service (nexus-auth)
-	fmt.Println("🔌 Connecting to Identity Service...")
+	fmt.Println("\n-> Connecting to Identity Service...")
 	authConn, err := grpc.Dial("unix:///var/run/nexus-auth.sock",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)

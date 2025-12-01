@@ -59,17 +59,17 @@ func (s *AuthServer) RegisterInit(ctx context.Context, req *pb.RegisterRequest) 
 	if exists > 0 {
 		return nil, errors.New("username or email already exists")
 	}
-
-	// Hasher le mot de passe
+	// Hash the password
 	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 12)
 	otp := GenerateOTP()
 
 	// Sauvegarder dans la table "Pending" (En attente de validation)
+	// Will create the user but in a Pending table, when the verification will be done, the user will be formally stored in the database as a legit user
 	reg := PendingRegistration{
 		Email: req.Email, Username: req.Username, Password: string(hashedPwd),
 		OTP: otp, ExpiresAt: time.Now().Add(5 * time.Minute),
 	}
-	s.db.Save(&reg) // Upsert (écrase si existe déjà pour cet email)
+	s.db.Save(&reg) // literally an upsert mechanism, since it will update the user with the same previous mail
 
 	// Goroutine pour ne pas bloquer l'API !
 	go func() {
@@ -83,25 +83,22 @@ func (s *AuthServer) RegisterInit(ctx context.Context, req *pb.RegisterRequest) 
 
 func (s *AuthServer) RegisterVerify(ctx context.Context, req *pb.OTPRequest) (*pb.TokenResponse, error) {
 	var pending PendingRegistration
-	// Chercher la demande en attente
+	// Let's fetch the user in the pending table and ensure he the otp is valid
 	if err := s.db.Where("email = ? AND otp = ?", req.Email, req.Code).First(&pending).Error; err != nil {
 		return nil, errors.New("invalid or expired OTP")
 	}
-
 	if time.Now().After(pending.ExpiresAt) {
 		return nil, errors.New("OTP expired")
 	}
-
-	// OTP valide : Créer le vrai User
+	// if it reaches here, it means the OTP was valid and it is time to create a new user
 	user := User{Username: pending.Username, Email: pending.Email, Password: pending.Password}
 	if err := s.db.Create(&user).Error; err != nil {
 		return nil, err
 	}
-
-	// Nettoyer
+	// after creating the user, let's erase that entry in the pending table
 	s.db.Delete(&pending)
 
-	// Générer JWT direct
+	// We generate the JWT Token to be sent in the response
 	token, _ := generateJWT(user.Username)
 	return &pb.TokenResponse{Token: token, Username: user.Username}, nil
 }

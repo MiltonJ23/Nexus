@@ -44,7 +44,7 @@ func main() {
 		os.Exit(0)
 	}()
 
-	fmt.Printf("🔐 Identity Service running on %s (SQLite DB: /var/lib/nexus/auth.db)\n", AuthSocket)
+	fmt.Printf(" Identity Service running on %s (SQLite DB: /var/lib/nexus/auth.db)\n", AuthSocket)
 	if err := s.Serve(lis); err != nil {
 		panic(err)
 	}
