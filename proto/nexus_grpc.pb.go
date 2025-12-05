@@ -24,6 +24,7 @@ const (
 	NexusController_DownloadFile_FullMethodName   = "/nexus.NexusController/DownloadFile"
 	NexusController_ListFiles_FullMethodName      = "/nexus.NexusController/ListFiles"
 	NexusController_GetNodeMetrics_FullMethodName = "/nexus.NexusController/GetNodeMetrics"
+	NexusController_RunLambda_FullMethodName      = "/nexus.NexusController/RunLambda"
 )
 
 // NexusControllerClient is the client API for NexusController service.
@@ -37,6 +38,7 @@ type NexusControllerClient interface {
 	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
 	ListFiles(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*FileListResponse, error)
 	GetNodeMetrics(ctx context.Context, in *NodeMetricsRequest, opts ...grpc.CallOption) (*NodeMetricsResponse, error)
+	RunLambda(ctx context.Context, in *LambdaRequest, opts ...grpc.CallOption) (*LambdaResponse, error)
 }
 
 type nexusControllerClient struct {
@@ -92,6 +94,15 @@ func (c *nexusControllerClient) GetNodeMetrics(ctx context.Context, in *NodeMetr
 	return out, nil
 }
 
+func (c *nexusControllerClient) RunLambda(ctx context.Context, in *LambdaRequest, opts ...grpc.CallOption) (*LambdaResponse, error) {
+	out := new(LambdaResponse)
+	err := c.cc.Invoke(ctx, NexusController_RunLambda_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NexusControllerServer is the server API for NexusController service.
 // All implementations must embed UnimplementedNexusControllerServer
 // for forward compatibility
@@ -103,6 +114,7 @@ type NexusControllerServer interface {
 	DownloadFile(context.Context, *DownloadFileRequest) (*FileResponse, error)
 	ListFiles(context.Context, *Empty) (*FileListResponse, error)
 	GetNodeMetrics(context.Context, *NodeMetricsRequest) (*NodeMetricsResponse, error)
+	RunLambda(context.Context, *LambdaRequest) (*LambdaResponse, error)
 	mustEmbedUnimplementedNexusControllerServer()
 }
 
@@ -124,6 +136,9 @@ func (UnimplementedNexusControllerServer) ListFiles(context.Context, *Empty) (*F
 }
 func (UnimplementedNexusControllerServer) GetNodeMetrics(context.Context, *NodeMetricsRequest) (*NodeMetricsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodeMetrics not implemented")
+}
+func (UnimplementedNexusControllerServer) RunLambda(context.Context, *LambdaRequest) (*LambdaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RunLambda not implemented")
 }
 func (UnimplementedNexusControllerServer) mustEmbedUnimplementedNexusControllerServer() {}
 
@@ -228,6 +243,24 @@ func _NexusController_GetNodeMetrics_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NexusController_RunLambda_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LambdaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).RunLambda(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_RunLambda_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).RunLambda(ctx, req.(*LambdaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NexusController_ServiceDesc is the grpc.ServiceDesc for NexusController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -254,6 +287,10 @@ var NexusController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNodeMetrics",
 			Handler:    _NexusController_GetNodeMetrics_Handler,
+		},
+		{
+			MethodName: "RunLambda",
+			Handler:    _NexusController_RunLambda_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
