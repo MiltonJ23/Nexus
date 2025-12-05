@@ -56,6 +56,7 @@ func (s *Server) SetupRouter() *gin.Engine {
 		api.POST("/files/upload", s.handleUpload)
 		api.GET("/files", s.handleListFiles)
 		api.GET("/files/:id/download", s.handleDownload)
+		api.GET("/api/nodes/:id/metrics", s.handleGetMetrics)
 	}
 
 	return r
@@ -254,4 +255,13 @@ func (s *Server) handleDownload(c *gin.Context) {
 	// Cela permet au navigateur de lancer le téléchargement
 	c.File(tempDest)
 
+}
+func (s *Server) handleGetMetrics(c *gin.Context) {
+	id := c.Param("id")
+	resp, err := s.nexus.GetNodeMetrics(c, &pb.NodeMetricsRequest{NodeId: id})
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
 }
