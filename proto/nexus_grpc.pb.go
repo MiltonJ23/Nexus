@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	NexusController_CreateNode_FullMethodName   = "/nexus.NexusController/CreateNode"
-	NexusController_UploadFile_FullMethodName   = "/nexus.NexusController/UploadFile"
-	NexusController_DownloadFile_FullMethodName = "/nexus.NexusController/DownloadFile"
-	NexusController_ListFiles_FullMethodName    = "/nexus.NexusController/ListFiles"
+	NexusController_CreateNode_FullMethodName     = "/nexus.NexusController/CreateNode"
+	NexusController_UploadFile_FullMethodName     = "/nexus.NexusController/UploadFile"
+	NexusController_DownloadFile_FullMethodName   = "/nexus.NexusController/DownloadFile"
+	NexusController_ListFiles_FullMethodName      = "/nexus.NexusController/ListFiles"
+	NexusController_GetNodeMetrics_FullMethodName = "/nexus.NexusController/GetNodeMetrics"
 )
 
 // NexusControllerClient is the client API for NexusController service.
@@ -35,6 +36,7 @@ type NexusControllerClient interface {
 	UploadFile(ctx context.Context, in *UploadFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
 	DownloadFile(ctx context.Context, in *DownloadFileRequest, opts ...grpc.CallOption) (*FileResponse, error)
 	ListFiles(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*FileListResponse, error)
+	GetNodeMetrics(ctx context.Context, in *NodeMetricsRequest, opts ...grpc.CallOption) (*NodeMetricsResponse, error)
 }
 
 type nexusControllerClient struct {
@@ -81,6 +83,15 @@ func (c *nexusControllerClient) ListFiles(ctx context.Context, in *Empty, opts .
 	return out, nil
 }
 
+func (c *nexusControllerClient) GetNodeMetrics(ctx context.Context, in *NodeMetricsRequest, opts ...grpc.CallOption) (*NodeMetricsResponse, error) {
+	out := new(NodeMetricsResponse)
+	err := c.cc.Invoke(ctx, NexusController_GetNodeMetrics_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NexusControllerServer is the server API for NexusController service.
 // All implementations must embed UnimplementedNexusControllerServer
 // for forward compatibility
@@ -91,6 +102,7 @@ type NexusControllerServer interface {
 	UploadFile(context.Context, *UploadFileRequest) (*FileResponse, error)
 	DownloadFile(context.Context, *DownloadFileRequest) (*FileResponse, error)
 	ListFiles(context.Context, *Empty) (*FileListResponse, error)
+	GetNodeMetrics(context.Context, *NodeMetricsRequest) (*NodeMetricsResponse, error)
 	mustEmbedUnimplementedNexusControllerServer()
 }
 
@@ -109,6 +121,9 @@ func (UnimplementedNexusControllerServer) DownloadFile(context.Context, *Downloa
 }
 func (UnimplementedNexusControllerServer) ListFiles(context.Context, *Empty) (*FileListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListFiles not implemented")
+}
+func (UnimplementedNexusControllerServer) GetNodeMetrics(context.Context, *NodeMetricsRequest) (*NodeMetricsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNodeMetrics not implemented")
 }
 func (UnimplementedNexusControllerServer) mustEmbedUnimplementedNexusControllerServer() {}
 
@@ -195,6 +210,24 @@ func _NexusController_ListFiles_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NexusController_GetNodeMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NodeMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).GetNodeMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_GetNodeMetrics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).GetNodeMetrics(ctx, req.(*NodeMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NexusController_ServiceDesc is the grpc.ServiceDesc for NexusController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -217,6 +250,10 @@ var NexusController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListFiles",
 			Handler:    _NexusController_ListFiles_Handler,
+		},
+		{
+			MethodName: "GetNodeMetrics",
+			Handler:    _NexusController_GetNodeMetrics_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
