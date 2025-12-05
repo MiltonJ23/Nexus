@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"Nexus/internal/service"
+	"Nexus/internal/state"
 	pb "Nexus/proto"
 	"context"
 	"fmt"
@@ -87,4 +88,18 @@ func (s *NexusServer) DownloadFile(ctx context.Context, req *pb.DownloadFileRequ
 		return nil, err
 	}
 	return &pb.FileResponse{Status: "Downloaded", Name: absPath}, nil
+}
+
+func (s *NexusServer) GetNodeMetrics(ctx context.Context, req *pb.NodeMetricsRequest) (*pb.NodeMetricsResponse, error) {
+	node, exists := state.GlobalState.GetNode(req.NodeId)
+	if !exists {
+		return nil, fmt.Errorf("node not found")
+	}
+
+	return &pb.NodeMetricsResponse{
+		NodeId:      node.ID,
+		MemoryUsage: node.LatestMetrics.MemoryUsage,
+		MemoryLimit: node.LatestMetrics.MemoryLimit,
+		CpuPercent:  node.LatestMetrics.CPUPercent,
+	}, nil
 }
