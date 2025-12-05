@@ -1,5 +1,7 @@
 package core
 
+import "time"
+
 // This is where a node is defined
 
 type NodeConfig struct {
@@ -18,13 +20,23 @@ type NodeConfig struct {
 
 type NodeState struct {
 	NodeConfig
-	PID    int       // the process identifier inside the running node
-	Status string    // to see if it's "RUNNING" or "STOPPED" or even "ERROR"
-	IP     IPAddress // the ip address of course
+	PID           int         // the process identifier inside the running node
+	Status        string      // to see if it's "RUNNING" or "STOPPED" or even "ERROR"
+	IP            IPAddress   // the ip address of course
+	LatestMetrics NodeMetrics `json:"latest_metrics"`
 }
 
 type IPAddress struct {
 	IP      string // This is the ip address of the node , let's say for example 192.168.3.8
 	Subnet  string // let's say for example 192.168.3.0/24
 	Gateway string // This is the bridge ip address
+}
+
+type NodeMetrics struct {
+	NodeID        string    `json:"node_id"`
+	Timestamp     time.Time `json:"timestamp"`
+	MemoryUsage   int64     `json:"memory_usage_bytes"`
+	MemoryLimit   int64     `json:"memory_limit_bytes"`
+	CPUUsageTotal int64     `json:"cpu_usage_nanos"` // This right here is the total cpu consumed since the node launch
+	CPUPercent    float64   `json:"cpu_percent"`
 }
