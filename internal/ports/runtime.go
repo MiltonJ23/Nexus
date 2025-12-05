@@ -3,6 +3,7 @@ package ports
 // This is the interface of our runtime service
 import (
 	"Nexus/internal/core"
+	"io"
 )
 
 // The interface ContainerRuntime is the contract to start, stop and manage containers
@@ -16,4 +17,6 @@ type ContainerRuntime interface {
 
 	// GetState  will fetch the state of an existing container
 	GetState(id string) (*core.NodeState, error)
+
+	RunEphemeral(conf core.NodeConfig, stdout, stderr io.Writer) (int, error)
 }
