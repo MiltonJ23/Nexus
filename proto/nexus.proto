@@ -16,6 +16,11 @@ service NexusController {
   rpc ListFiles (Empty) returns (FileListResponse);
   rpc GetNodeMetrics (NodeMetricsRequest) returns (NodeMetricsResponse);
   rpc RunLambda (LambdaRequest) returns (LambdaResponse);
+  rpc FSMakeDir (FSRequest) returns (Empty);
+  rpc FSList (FSRequest) returns (FSListResponse);
+  rpc FSDelete (FSRequest) returns (GenericResponse);
+  rpc FSUpload (FSUploadRequest) returns (GenericResponse);
+  rpc FSMove (FSMoveRequest) returns (GenericResponse);
 }
 
 message Empty {}
@@ -77,6 +82,37 @@ message LambdaResponse {
   string stderr = 2;
   int64 execution_time_ms = 3;
   int32 exit_code = 4;
+}
+
+message GenericResponse {
+  string message = 1;
+}
+
+message FSRequest {
+  string path = 1;
+  string username = 2;
+}
+
+message FSListResponse {
+  repeated FileInfo items = 1;
+}
+
+message FileInfo {
+  string name = 1;
+  string type = 2; // "file" or "folder"
+  int64 size = 3;
+}
+
+message FSUploadRequest {
+  string local_path = 1;   // The temp path on server
+  string virtual_path = 2; // The target path in VFS (e.g. /home/docs/file.txt)
+  string username = 3;
+}
+
+message FSMoveRequest {
+  string old_path = 1;
+  string new_path = 2;
+  string username = 3;
 }
 
 /*protoc --go_out=. --go_opt=paths=source_relative \

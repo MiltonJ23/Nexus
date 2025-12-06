@@ -25,6 +25,11 @@ const (
 	NexusController_ListFiles_FullMethodName      = "/nexus.NexusController/ListFiles"
 	NexusController_GetNodeMetrics_FullMethodName = "/nexus.NexusController/GetNodeMetrics"
 	NexusController_RunLambda_FullMethodName      = "/nexus.NexusController/RunLambda"
+	NexusController_FSMakeDir_FullMethodName      = "/nexus.NexusController/FSMakeDir"
+	NexusController_FSList_FullMethodName         = "/nexus.NexusController/FSList"
+	NexusController_FSDelete_FullMethodName       = "/nexus.NexusController/FSDelete"
+	NexusController_FSUpload_FullMethodName       = "/nexus.NexusController/FSUpload"
+	NexusController_FSMove_FullMethodName         = "/nexus.NexusController/FSMove"
 )
 
 // NexusControllerClient is the client API for NexusController service.
@@ -39,6 +44,11 @@ type NexusControllerClient interface {
 	ListFiles(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*FileListResponse, error)
 	GetNodeMetrics(ctx context.Context, in *NodeMetricsRequest, opts ...grpc.CallOption) (*NodeMetricsResponse, error)
 	RunLambda(ctx context.Context, in *LambdaRequest, opts ...grpc.CallOption) (*LambdaResponse, error)
+	FSMakeDir(ctx context.Context, in *FSRequest, opts ...grpc.CallOption) (*Empty, error)
+	FSList(ctx context.Context, in *FSRequest, opts ...grpc.CallOption) (*FSListResponse, error)
+	FSDelete(ctx context.Context, in *FSRequest, opts ...grpc.CallOption) (*GenericResponse, error)
+	FSUpload(ctx context.Context, in *FSUploadRequest, opts ...grpc.CallOption) (*GenericResponse, error)
+	FSMove(ctx context.Context, in *FSMoveRequest, opts ...grpc.CallOption) (*GenericResponse, error)
 }
 
 type nexusControllerClient struct {
@@ -103,6 +113,51 @@ func (c *nexusControllerClient) RunLambda(ctx context.Context, in *LambdaRequest
 	return out, nil
 }
 
+func (c *nexusControllerClient) FSMakeDir(ctx context.Context, in *FSRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, NexusController_FSMakeDir_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nexusControllerClient) FSList(ctx context.Context, in *FSRequest, opts ...grpc.CallOption) (*FSListResponse, error) {
+	out := new(FSListResponse)
+	err := c.cc.Invoke(ctx, NexusController_FSList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nexusControllerClient) FSDelete(ctx context.Context, in *FSRequest, opts ...grpc.CallOption) (*GenericResponse, error) {
+	out := new(GenericResponse)
+	err := c.cc.Invoke(ctx, NexusController_FSDelete_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nexusControllerClient) FSUpload(ctx context.Context, in *FSUploadRequest, opts ...grpc.CallOption) (*GenericResponse, error) {
+	out := new(GenericResponse)
+	err := c.cc.Invoke(ctx, NexusController_FSUpload_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nexusControllerClient) FSMove(ctx context.Context, in *FSMoveRequest, opts ...grpc.CallOption) (*GenericResponse, error) {
+	out := new(GenericResponse)
+	err := c.cc.Invoke(ctx, NexusController_FSMove_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NexusControllerServer is the server API for NexusController service.
 // All implementations must embed UnimplementedNexusControllerServer
 // for forward compatibility
@@ -115,6 +170,11 @@ type NexusControllerServer interface {
 	ListFiles(context.Context, *Empty) (*FileListResponse, error)
 	GetNodeMetrics(context.Context, *NodeMetricsRequest) (*NodeMetricsResponse, error)
 	RunLambda(context.Context, *LambdaRequest) (*LambdaResponse, error)
+	FSMakeDir(context.Context, *FSRequest) (*Empty, error)
+	FSList(context.Context, *FSRequest) (*FSListResponse, error)
+	FSDelete(context.Context, *FSRequest) (*GenericResponse, error)
+	FSUpload(context.Context, *FSUploadRequest) (*GenericResponse, error)
+	FSMove(context.Context, *FSMoveRequest) (*GenericResponse, error)
 	mustEmbedUnimplementedNexusControllerServer()
 }
 
@@ -139,6 +199,21 @@ func (UnimplementedNexusControllerServer) GetNodeMetrics(context.Context, *NodeM
 }
 func (UnimplementedNexusControllerServer) RunLambda(context.Context, *LambdaRequest) (*LambdaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RunLambda not implemented")
+}
+func (UnimplementedNexusControllerServer) FSMakeDir(context.Context, *FSRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FSMakeDir not implemented")
+}
+func (UnimplementedNexusControllerServer) FSList(context.Context, *FSRequest) (*FSListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FSList not implemented")
+}
+func (UnimplementedNexusControllerServer) FSDelete(context.Context, *FSRequest) (*GenericResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FSDelete not implemented")
+}
+func (UnimplementedNexusControllerServer) FSUpload(context.Context, *FSUploadRequest) (*GenericResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FSUpload not implemented")
+}
+func (UnimplementedNexusControllerServer) FSMove(context.Context, *FSMoveRequest) (*GenericResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FSMove not implemented")
 }
 func (UnimplementedNexusControllerServer) mustEmbedUnimplementedNexusControllerServer() {}
 
@@ -261,6 +336,96 @@ func _NexusController_RunLambda_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NexusController_FSMakeDir_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FSRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).FSMakeDir(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_FSMakeDir_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).FSMakeDir(ctx, req.(*FSRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NexusController_FSList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FSRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).FSList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_FSList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).FSList(ctx, req.(*FSRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NexusController_FSDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FSRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).FSDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_FSDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).FSDelete(ctx, req.(*FSRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NexusController_FSUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FSUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).FSUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_FSUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).FSUpload(ctx, req.(*FSUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NexusController_FSMove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FSMoveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NexusControllerServer).FSMove(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NexusController_FSMove_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NexusControllerServer).FSMove(ctx, req.(*FSMoveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NexusController_ServiceDesc is the grpc.ServiceDesc for NexusController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -291,6 +456,26 @@ var NexusController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RunLambda",
 			Handler:    _NexusController_RunLambda_Handler,
+		},
+		{
+			MethodName: "FSMakeDir",
+			Handler:    _NexusController_FSMakeDir_Handler,
+		},
+		{
+			MethodName: "FSList",
+			Handler:    _NexusController_FSList_Handler,
+		},
+		{
+			MethodName: "FSDelete",
+			Handler:    _NexusController_FSDelete_Handler,
+		},
+		{
+			MethodName: "FSUpload",
+			Handler:    _NexusController_FSUpload_Handler,
+		},
+		{
+			MethodName: "FSMove",
+			Handler:    _NexusController_FSMove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

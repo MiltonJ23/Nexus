@@ -18,3 +18,4 @@ type Chunk struct {
 	Size       int64  `json:"size"`
 	Checksum   string `json:"checksum"` // we MD5/SHA256 for checking the integrity of the chunk
 }
+f

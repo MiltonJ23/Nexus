@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 const StateDir = "/var/lib/nexus"
@@ -14,8 +15,9 @@ const StateFile = "nexus.json" // This point to the json holding the state of th
 var GlobalState *StateManager
 
 type AppState struct { // Basically this AppState is the single point of truth or should i say where the truth will be found
-	Node  map[string]core.NodeState     `json:"nodes"`
-	Files map[string]*core.FileMetadata `json:"files"`
+	Node        map[string]core.NodeState       `json:"nodes"`
+	Files       map[string]*core.FileMetadata   `json:"files"` // The physical file index
+	FileSystems map[string]*core.UserFileSystem `json:"file_systems"`
 }
 
 // StateManager is going to handle concurrent access to the state file
@@ -31,8 +33,9 @@ func init() {
 
 	GlobalState = &StateManager{
 		State: AppState{
-			Node:  make(map[string]core.NodeState),
-			Files: make(map[string]*core.FileMetadata),
+			Node:        make(map[string]core.NodeState),
+			Files:       make(map[string]*core.FileMetadata),
+			FileSystems: make(map[string]*core.UserFileSystem),
 		},
 		path: fullPath,
 	}
@@ -75,6 +78,30 @@ func (sm *StateManager) Save() error {
 
 	// 3. Write Atomic (Technically os.WriteFile isn't fully atomic but good enough for now)
 	return os.WriteFile(sm.path, data, 0644)
+}
+
+func (sm *StateManager) GetUserFS(username string) *core.UserFileSystem {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	if fs, exists := sm.State.FileSystems[username]; exists {
+		return fs
+	}
+
+	// Create default FS for new user
+	newFS := &core.UserFileSystem{
+		Username:   username,
+		QuotaLimit: 500 * 1024 * 1024, // 500 MB Default Quota
+		QuotaUsed:  0,
+		Root: &core.FSNode{
+			Name:      "/",
+			Type:      core.NodeTypeFolder,
+			CreatedAt: time.Now(),
+			Children:  []*core.FSNode{},
+		},
+	}
+	sm.State.FileSystems[username] = newFS
+	return newFS
 }
 
 // --- Helper Methods ---

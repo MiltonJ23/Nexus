@@ -57,6 +57,16 @@ func (s *Server) SetupRouter() *gin.Engine {
 		api.GET("/files", s.handleListFiles)
 		api.GET("/files/:id/download", s.handleDownload)
 		api.GET("/api/nodes/:id/metrics", s.handleGetMetrics)
+		api.POST("/lambda/run", s.handleRunLambda)
+
+		fsGroup := api.Group("/fs")
+		{
+			fsGroup.POST("/mkdir", s.handleFSMkdir)     // Create folder
+			fsGroup.GET("/ls", s.handleFSList)          // List folder content
+			fsGroup.POST("/upload", s.handleFSUpload)   // Upload file to specific folder
+			fsGroup.DELETE("/delete", s.handleFSDelete) // Delete file or folder
+			fsGroup.POST("/move", s.handleFSMove)       // Rename or Move
+		}
 	}
 
 	return r
@@ -264,4 +274,160 @@ func (s *Server) handleGetMetrics(c *gin.Context) {
 		return
 	}
 	c.JSON(200, resp)
+}
+func (s *Server) handleRunLambda(c *gin.Context) {
+	var req struct {
+		Code    string
+		Runtime string
+	}
+	if err := c.BindJSON(&req); err != nil {
+		return
+	}
+
+	resp, err := s.nexus.RunLambda(c, &pb.LambdaRequest{Code: req.Code, Runtime: req.Runtime})
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, resp)
+}
+
+func (s *Server) handleFSMkdir(c *gin.Context) {
+	var req struct {
+		Path string `json:"path"` // e.g., "/documents/projects"
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	// Retrieve username injected by AuthMiddleware
+	username := c.GetString("username")
+
+	_, err := s.nexus.FSMakeDir(c, &pb.FSRequest{
+		Path:     req.Path,
+		Username: username,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Directory created", "path": req.Path})
+}
+
+func (s *Server) handleFSList(c *gin.Context) {
+	pathQuery := c.Query("path") // Get path from URL params
+	if pathQuery == "" {
+		pathQuery = "/" // Default to root
+	}
+
+	username := c.GetString("username")
+
+	resp, err := s.nexus.FSList(c, &pb.FSRequest{
+		Path:     pathQuery,
+		Username: username,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Returns a list of file/folder objects
+	c.JSON(http.StatusOK, resp.Items)
+}
+
+func (s *Server) handleFSUpload(c *gin.Context) {
+	// 1. Get the target directory from the form data
+	virtualPath := c.PostForm("path") // e.g., "/documents/images/logo.png"
+	if virtualPath == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Target path is required"})
+		return
+	}
+
+	// 2. Get the file from the request
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	// 3. Save to a temp folder (Gateway acts as a buffer)
+	tempDir := "/tmp/nexus_fs_uploads"
+	os.MkdirAll(tempDir, 0755)
+	localTempPath := filepath.Join(tempDir, file.Filename)
+
+	if err := c.SaveUploadedFile(file, localTempPath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to buffer file"})
+		return
+	}
+
+	username := c.GetString("username")
+
+	// 4. Call gRPC to process the logic
+	// The Daemon will: 1. Chunk the file, 2. Store it, 3. Link it in the user's VFS
+	_, err = s.nexus.FSUpload(c, &pb.FSUploadRequest{
+		LocalPath:   localTempPath, // Physical path on server
+		VirtualPath: virtualPath,   // Logical path in user's VFS
+		Username:    username,
+	})
+
+	// Clean up temp file (optional, depends on if Daemon moves or copies)
+	// os.Remove(localTempPath)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "path": virtualPath})
+}
+
+func (s *Server) handleFSDelete(c *gin.Context) {
+	pathQuery := c.Query("path") // e.g., DELETE /api/fs/delete?path=/docs/old.txt
+	if pathQuery == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Path required"})
+		return
+	}
+
+	username := c.GetString("username")
+
+	_, err := s.nexus.FSDelete(c, &pb.FSRequest{
+		Path:     pathQuery,
+		Username: username,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Item deleted"})
+}
+func (s *Server) handleFSMove(c *gin.Context) {
+	var req struct {
+		OldPath string `json:"old_path"`
+		NewPath string `json:"new_path"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	username := c.GetString("username")
+
+	_, err := s.nexus.FSMove(c, &pb.FSMoveRequest{
+		OldPath:  req.OldPath,
+		NewPath:  req.NewPath,
+		Username: username,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Item moved/renamed"})
 }
