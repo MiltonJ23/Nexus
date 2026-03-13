@@ -13,6 +13,8 @@ type MetricsService struct {
 	stop    chan struct{}
 }
 
+// NewMetricsService creates a MetricsService that collects node metrics using a metrics.Scraper
+// and updates the provided state.StateManager in memory.
 func NewMetricsService(st *state.StateManager) *MetricsService {
 	return &MetricsService{
 		scraper: metrics.NewScraper(),

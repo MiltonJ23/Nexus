@@ -17,7 +17,8 @@ type NexusServer struct {
 	lambdaService *service.LambdaService
 }
 
-// Initialization of a new Nexus Grpc server
+// NewNexusServer creates a NexusServer with initialized NodeService, FileService, and LambdaService.
+// It returns a configured *NexusServer or an error if service initialization (notably NodeService) fails.
 func NewNexusServer() (*NexusServer, error) {
 	// let's initialize the services in one go inside  the daemon
 	ns, err := service.NewNodeService()

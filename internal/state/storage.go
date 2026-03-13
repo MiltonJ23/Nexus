@@ -27,6 +27,8 @@ type StateManager struct {
 	path  string
 }
 
+// init initializes GlobalState with an empty AppState (empty maps for nodes, files, and per-user file systems)
+// and sets the state's on-disk file path combining StateDir and StateFile.
 func init() {
 
 	fullPath := filepath.Join(StateDir, StateFile)

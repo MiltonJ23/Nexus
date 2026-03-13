@@ -18,6 +18,7 @@ type Server struct {
 }
 
 // NewServer initialise le serveur avec les clients gRPC injectés
+// NewServer constructs a Server and injects the provided Nexus and Auth gRPC clients.
 func NewServer(nexusClient pb.NexusControllerClient, authClient auth_pb.AuthServiceClient) *Server {
 	return &Server{
 		nexus: nexusClient,

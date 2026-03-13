@@ -58,6 +58,7 @@ var nodeCreateCmd = &cobra.Command{
 	},
 }
 
+// init registers the node management commands and defines CLI flags for the node create subcommand.
 func init() {
 	rootCmd.AddCommand(nodeCmd)
 	nodeCmd.AddCommand(nodeCreateCmd)

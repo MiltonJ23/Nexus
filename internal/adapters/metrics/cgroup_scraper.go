@@ -17,6 +17,8 @@ type Scraper struct {
 	prevTime map[string]time.Time
 }
 
+// NewScraper creates a Scraper with initialized maps for tracking previous CPU usage and timestamps per NodeId.
+// The returned Scraper is ready to collect metrics and compute CPU usage deltas across subsequent samples.
 func NewScraper() *Scraper {
 	return &Scraper{
 		prevCpu:  make(map[string]int64),
@@ -73,6 +75,8 @@ func (s *Scraper) Collect(NodeId string) (*core.NodeMetrics, error) {
 	}, nil
 }
 
+// readInt64 reads the file at the given path, trims surrounding whitespace, and parses its contents as a base-10 int64.
+// It returns the parsed integer or an error if the file cannot be read or the contents cannot be parsed.
 func readInt64(path string) (int64, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

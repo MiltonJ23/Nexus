@@ -17,6 +17,8 @@ type LambdaService struct {
 	runtime ports.ContainerRuntime
 }
 
+// NewLambdaService creates a LambdaService backed by a libcontainer-based ContainerRuntime.
+// It returns the initialized LambdaService or an error if the container runtime cannot be created.
 func NewLambdaService() (*LambdaService, error) {
 	rt, err := runtime.NewLibContainerRuntime()
 	if err != nil {

@@ -13,6 +13,7 @@ type FSService struct {
 	state       *state.StateManager
 }
 
+// NewFSService creates and returns an FSService initialized with a new FileService and the global state manager.
 func NewFSService() *FSService {
 	return &FSService{
 		fileService: NewFileService(),

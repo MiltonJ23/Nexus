@@ -41,6 +41,7 @@ type AuthServer struct {
 	db *gorm.DB
 }
 
+// NewAuthServer opens the SQLite database at /var/lib/nexus/auth.db, runs schema auto-migrations for User, PendingRegistration, and LoginOTP, and returns a ready-to-use AuthServer or an error.
 func NewAuthServer() (*AuthServer, error) {
 	db, err := gorm.Open(sqlite.Open("/var/lib/nexus/auth.db"), &gorm.Config{})
 	if err != nil {
@@ -157,6 +158,8 @@ func (s *AuthServer) LoginVerify(ctx context.Context, req *pb.OTPRequest) (*pb.T
 }
 
 // --- Helpers ---
+// generateJWT creates a JWT whose `sub` claim is set to the provided username and whose expiration is 24 hours from now.
+// It returns the signed token string, or an error if token signing fails.
 
 func generateJWT(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{

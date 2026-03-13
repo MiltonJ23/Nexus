@@ -14,6 +14,10 @@ import (
 
 const AuthSocket = "/var/run/nexus-auth.sock"
 
+// main starts the gRPC Auth service listening on the Unix-domain socket defined by AuthSocket.
+// It prepares or removes any existing socket file, sets socket permissions, initializes and
+// registers the identity Auth service, and begins serving. On SIGINT or SIGTERM it performs a
+// graceful shutdown, removes the socket file, and exits.
 func main() {
 	// 1. Prepare Socket
 	if _, err := os.Stat(AuthSocket); err == nil {
