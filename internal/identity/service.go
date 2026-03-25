@@ -157,6 +157,7 @@ func (s *AuthServer) LoginVerify(ctx context.Context, req *pb.OTPRequest) (*pb.T
 	return &pb.TokenResponse{Token: token, Username: user.Username}, nil
 }
 
+// --- Helpers ---
 // generateJWT creates a JWT whose `sub` claim is set to the provided username and whose expiration is 24 hours from now.
 // It returns the signed token string, or an error if token signing fails.
 

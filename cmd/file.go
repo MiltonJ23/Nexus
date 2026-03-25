@@ -84,7 +84,6 @@ var listCmd = &cobra.Command{
 	},
 }
 
-// init registers the file command and its subcommands (upload, download, list) with the root command.
 func init() {
 	rootCmd.AddCommand(fileCmd)
 	fileCmd.AddCommand(uploadCmd)

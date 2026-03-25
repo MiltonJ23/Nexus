@@ -14,12 +14,14 @@ const (
 	SenderAppPwd = "tgnw azxw lfjr jsuz"
 )
 
+// GenerateOTP will generate a 6 digits number
 // GenerateOTP generates a six-digit, zero-padded numeric One-Time Password (OTP) string.
 func GenerateOTP() string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return fmt.Sprintf("%06d", r.Intn(1000000))
 }
 
+// SendOTPEmail will send the mail in a synchronous way but will be call inside  a goroutine so that execution will be asynchronous
 // SendOTPEmail sends an OTP email containing otpCode to the specified recipient.
 // The message includes the OTP and a note that it expires in 5 minutes.
 // It returns an error if the SMTP send operation fails.

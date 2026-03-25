@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "Nexus/proto/auth";
+
+service AuthService {
+  // Etape 1: L'utilisateur envoie ses infos. On vérifie, on génère OTP, on envoie mail.
+  rpc RegisterInit (RegisterRequest) returns (GenericResponse);
+  rpc LoginInit (LoginRequest) returns (GenericResponse);
+
+  // Etape 2: L'utilisateur envoie le code reçu par mail. On valide et on donne le token/succès.
+  rpc RegisterVerify (OTPRequest) returns (TokenResponse);
+  rpc LoginVerify (OTPRequest) returns (TokenResponse);
+
+  // Utilitaire pour l'API Gateway pour vérifier le JWT
+  rpc ValidateToken (TokenRequest) returns (ValidationResponse);
+}
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message OTPRequest {
+  string email = 1; // The identifiant to find the OTP
+  string code = 2;
+}
+
+message GenericResponse {
+  string message = 1; // Ex: "OTP sent to email"
+}
+
+message TokenResponse {
+  string token = 1;
+  string username = 2;
+}
+
+message TokenRequest {
+  string token = 1;
+}
+
+message ValidationResponse {
+  bool valid = 1;
+  string username = 2;
+}

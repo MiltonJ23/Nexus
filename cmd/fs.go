@@ -113,7 +113,6 @@ var fsUploadCmd = &cobra.Command{
 	},
 }
 
-// init registers the fs command and its mkdir and ls subcommands with rootCmd.
 func init() {
 	rootCmd.AddCommand(fsCmd)
 	fsCmd.AddCommand(fsMkdirCmd)

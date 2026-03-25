@@ -4,14 +4,18 @@ Copyright © 2025 Zingui Fred Mike <mikezingui@yahoo.com>
 package cmd
 
 import (
+	"Nexus/internal/service"
+	"Nexus/internal/state"
 	pb "Nexus/proto"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	grpcserver "Nexus/internal/grpc"
+
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
@@ -42,12 +46,16 @@ var daemonCmd = &cobra.Command{
 			panic(fmt.Sprintf("failed to init services: %v", err))
 		}
 		pb.RegisterNexusControllerServer(grpcServer, nexusService)
+		// Initialize Metrics Service
+		metricsSvc := service.NewMetricsService(state.GlobalState)
+		metricsSvc.Start(5 * time.Second) // Collect every 5s
 		go func() {
 			sigChan := make(chan os.Signal, 1)
 			signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 			<-sigChan
 			fmt.Println("\n🔻 Stopping Nexus Daemon...")
 			grpcServer.GracefulStop()
+			metricsSvc.Stop()
 			os.Remove(SocketPath)
 			os.Exit(0)
 		}()
